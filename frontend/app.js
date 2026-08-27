@@ -3,7 +3,7 @@
 // Phase 5: the API is the source of truth for real search, filtering, and
 // sorting. This file only collects UI state and renders API responses.
 // After the Render service exists, replace only this one value with its HTTPS URL.
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://ubc-elective-compass-api.onrender.com";
 const PAGE_SIZE = 20;
 const savedCoursesStorageKey = "ubcElectiveCompassSavedCoursesV2";
 const guideSeenKey = "ubcElectiveCompassGuideSeen";

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A local application for exploring UBC undergraduate courses."
+    />
+    <title>UBC Elective Compass</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#finder" aria-label="UBC Elective Compass home">
+        <span class="brand-mark">⌁</span>
+        <span>UBC Elective Compass</span>
+      </a>
+      <nav class="main-nav" aria-label="Primary navigation">
+        <button class="nav-link active" type="button" data-view="finder" aria-current="page">
+          Course Finder
+        </button>
+        <button class="nav-link" type="button" data-view="saved">Saved Courses</button>
+      </nav>
+      <span class="topbar-note">UBC course exploration</span>
+      <button id="helpButton" class="help-button" type="button" aria-label="Open guide">?</button>
+    </header>
+
+    <main class="app-shell">
+      <aside class="filter-sidebar" aria-labelledby="filters-heading">
+        <div>
+          <p class="eyebrow">Your search</p>
+          <h2 id="filters-heading">Filters</h2>
+          <p class="sidebar-copy">Explore courses in a way that feels right for you.</p>
+        </div>
+
+        <section class="filter-group" aria-label="Interest filters">
+          <button id="interestButton" class="interest-picker" type="button" aria-haspopup="dialog">
+            <span class="control-icon">✦</span>
+            <span id="interestButtonText">Select interests</span>
+            <span aria-hidden="true">›</span>
+          </button>
+        </section>
+
+        <section class="toggle-list" aria-label="Course filters">
+          <label class="toggle-row" for="higherLevel">
+            <span>
+              <strong>Higher-level only</strong>
+              <small>300- and 400-level courses</small>
+            </span>
+            <input id="higherLevel" type="checkbox" role="switch" />
+          </label>
+          <label class="toggle-row" for="highAverage">
+            <span>
+              <strong>High historical average</strong>
+              <small>80% and above</small>
+            </span>
+            <input id="highAverage" type="checkbox" role="switch" />
+          </label>
+        </section>
+
+        <div class="filter-actions">
+          <button id="findCoursesButton" class="primary-button" type="button">Find courses</button>
+          <button id="resetFiltersButton" class="text-button" type="button">Clear filters</button>
+        </div>
+
+        <p class="signature" aria-label="Personal developer signature">x_y</p>
+      </aside>
+
+      <section id="finderView" class="content-view" aria-labelledby="finder-heading">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">Course discovery</p>
+            <h1 id="finder-heading">Explore courses</h1>
+            <p id="resultsSummary" class="subtitle" aria-live="polite"></p>
+          </div>
+          <label class="sort-control">
+            <span>Sort by</span>
+            <select id="sortSelect" aria-label="Sort course results">
+              <option value="highest_average">Highest average</option>
+              <option value="course_code">Course code</option>
+            </select>
+          </label>
+        </div>
+        <div class="course-search" role="search">
+          <label class="search-label" for="courseSearch">Find a course directly</label>
+          <div class="search-controls">
+            <div class="search-field-wrap">
+              <span class="search-icon" aria-hidden="true">⌕</span>
+              <input
+                id="courseSearch"
+                type="search"
+                autocomplete="off"
+                placeholder="Search by course code or subject..."
+                aria-describedby="searchHelp"
+                aria-controls="searchSuggestions"
+              />
+              <button id="searchButton" class="search-submit" type="button">Search</button>
+            </div>
+            <button id="clearSearchButton" class="clear-results hidden" type="button" aria-label="Clear displayed course results">Clear</button>
+          </div>
+          <p id="searchHelp" class="search-help">Search by course code or subject — partial entries and common abbreviations work too.</p>
+          <div id="searchSuggestions" class="search-suggestions hidden" role="listbox" aria-label="Course search suggestions"></div>
+        </div>
+        <p id="courseStatus" class="status-message hidden" role="status" aria-live="polite"></p>
+        <div id="courseResults" class="course-grid" aria-live="polite"></div>
+        <div id="loadMoreArea" class="load-more-area hidden">
+          <button id="loadMoreButton" class="outline-button" type="button">Load more</button>
+        </div>
+      </section>
+
+      <section id="savedView" class="content-view hidden" aria-labelledby="saved-heading">
+        <div class="page-heading saved-heading">
+          <div>
+            <p class="eyebrow">Your shortlist</p>
+            <h1 id="saved-heading">Saved courses</h1>
+            <p id="savedSummary" class="subtitle">Courses you save stay in this browser.</p>
+          </div>
+          <button class="outline-button" type="button" data-view="finder">Explore courses</button>
+        </div>
+        <div id="savedCourses" class="course-grid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <div id="interestModal" class="modal-backdrop hidden" role="presentation">
+      <section
+        class="interest-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="interestModalTitle"
+      >
+        <div class="modal-heading">
+          <div>
+            <p class="eyebrow">Personalize your search</p>
+            <h2 id="interestModalTitle">Select interests</h2>
+            <p class="subtitle">Choose as many as you like. Courses can match any selection.</p>
+          </div>
+          <button id="closeInterestModal" class="icon-button" type="button" aria-label="Close interest selection">
+            ×
+          </button>
+        </div>
+        <div id="interestOptions" class="interest-options" aria-label="Interest categories"></div>
+        <div class="modal-actions">
+          <button id="cancelInterestModal" class="outline-button" type="button">Cancel</button>
+          <button id="applyInterestModal" class="primary-button" type="button">Apply interests</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="guideModal" class="modal-backdrop hidden" role="presentation">
+      <section class="guide-modal" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+        <div class="modal-heading">
+          <p id="guideProgress" class="guide-progress" aria-live="polite"></p>
+          <button id="closeGuide" class="icon-button" type="button" aria-label="Close guide">×</button>
+        </div>
+        <div class="guide-content">
+          <div class="guide-symbol" aria-hidden="true">⌁</div>
+          <h2 id="guideTitle"></h2>
+          <div id="guideText" class="guide-text"></div>
+        </div>
+        <div class="guide-actions">
+          <button id="skipGuide" class="text-button" type="button">Skip guide</button>
+          <div class="guide-next-actions">
+            <button id="previousGuide" class="outline-button" type="button">Previous</button>
+            <button id="nextGuide" class="primary-button" type="button">Next</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <template id="emptyCoursesTemplate">
+      <section class="empty-state">
+        <span class="empty-icon" aria-hidden="true">⌕</span>
+        <h2>No courses match these filters.</h2>
+        <p>Try removing one of your filters, then search again.</p>
+      </section>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

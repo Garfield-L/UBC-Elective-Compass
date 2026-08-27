@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+data/*.json
+!data/.gitkeep
+!data/ubc_courses_v1_final.json

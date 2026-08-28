@@ -165,6 +165,25 @@ class FrontendInteractionAuditTests(unittest.TestCase):
         self.assertNotIn('loadSuggestions(query);\n  recordInteraction', app_js)
         self.assertNotIn('loadCourses({ append: true });\nrecordInteraction', app_js)
 
+    def test_signature_is_header_only_and_does_not_record_interactions(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
+        css = (root / "frontend" / "styles.css").read_text(encoding="utf-8")
+        app_js = (root / "frontend" / "app.js").read_text(encoding="utf-8")
+
+        self.assertNotIn("UBC course exploration", html)
+        self.assertEqual(html.count(">x_y<"), 1)
+        self.assertIn('id="signatureButton"', html)
+        self.assertNotIn("class=\"signature\"", html)
+        self.assertNotIn(".signature {", css)
+        self.assertIn("function popDeveloperSignature()", app_js)
+        self.assertIn("function createSignatureParticles()", app_js)
+        self.assertIn("signaturePopActive", app_js)
+        self.assertIn("prefers-reduced-motion: reduce", css)
+        pop_start = app_js.index("function popDeveloperSignature()")
+        pop_end = app_js.index("function getSavedCourses()", pop_start)
+        self.assertNotIn("recordInteraction", app_js[pop_start:pop_end])
+
 
 if __name__ == "__main__":
     unittest.main()

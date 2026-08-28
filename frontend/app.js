@@ -26,6 +26,11 @@ let suggestionRequestNumber = 0;
 let courseRequestNumber = 0;
 let currentGuideStep = 0;
 let displayedInteractionTotal = null;
+let signaturePopActive = false;
+
+const signatureParticleVectors = [
+  [0, -31], [24, -21], [34, 1], [22, 24], [0, 31], [-23, 23], [-34, 1], [-24, -21],
+];
 
 const guideSteps = [
   {
@@ -74,6 +79,7 @@ const elements = {
   savedSummary: document.querySelector("#savedSummary"),
   savedCourses: document.querySelector("#savedCourses"),
   interactionTotal: document.querySelector("#interactionTotal strong"),
+  signatureButton: document.querySelector("#signatureButton"),
   emptyTemplate: document.querySelector("#emptyCoursesTemplate"),
   helpButton: document.querySelector("#helpButton"),
   guideModal: document.querySelector("#guideModal"),
@@ -157,6 +163,36 @@ function recordInteraction(eventType) {
   apiRequest("/stats/interactions", { event_type: eventType })
     .then((response) => showInteractionTotal(response.total_interactions))
     .catch(showInteractionUnavailable);
+}
+
+function createSignatureParticles() {
+  const bounds = elements.signatureButton.getBoundingClientRect();
+  const originX = bounds.left + (bounds.width / 2);
+  const originY = bounds.top + (bounds.height / 2);
+  signatureParticleVectors.forEach(([x, y], index) => {
+    const particle = document.createElement("span");
+    particle.className = `signature-particle${index % 2 ? " signature-particle-dark" : ""}`;
+    particle.setAttribute("aria-hidden", "true");
+    particle.style.left = `${originX}px`;
+    particle.style.top = `${originY}px`;
+    particle.style.setProperty("--particle-x", `${x}px`);
+    particle.style.setProperty("--particle-y", `${y}px`);
+    particle.addEventListener("animationend", () => particle.remove(), { once: true });
+    document.body.append(particle);
+    window.setTimeout(() => particle.remove(), 700);
+  });
+}
+
+function popDeveloperSignature() {
+  if (signaturePopActive) return;
+  signaturePopActive = true;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reducedMotion) createSignatureParticles();
+  elements.signatureButton.classList.add("is-popping");
+  window.setTimeout(() => {
+    elements.signatureButton.classList.remove("is-popping");
+    signaturePopActive = false;
+  }, reducedMotion ? 180 : 800);
 }
 
 function setCourseLoading(isLoading, isLoadingMore = false) {
@@ -520,6 +556,7 @@ elements.courseSearch.addEventListener("blur", () => window.setTimeout(hideSugge
 elements.clearSearchButton.addEventListener("click", () => runNewSearch(""));
 elements.loadMoreButton.addEventListener("click", () => loadCourses({ append: true }));
 elements.navLinks.forEach((link) => link.addEventListener("click", () => switchView(link.dataset.view)));
+elements.signatureButton.addEventListener("click", popDeveloperSignature);
 elements.helpButton.addEventListener("click", openGuide);
 elements.closeGuide.addEventListener("click", dismissGuide);
 elements.skipGuide.addEventListener("click", dismissGuide);

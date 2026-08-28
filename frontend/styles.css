@@ -84,10 +84,61 @@ button { cursor: pointer; }
   background: var(--blush);
 }
 
-.topbar-note {
+.header-signature {
   margin-left: auto;
-  color: var(--muted);
-  font-size: 0.9rem;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--red-dark);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.header-signature:hover,
+.header-signature:focus-visible {
+  background: var(--blush);
+  outline: none;
+  transform: translateY(-1px) scale(1.06);
+}
+
+.header-signature.is-popping {
+  pointer-events: none;
+  animation: signature-pop 760ms ease-in-out both;
+}
+
+@keyframes signature-pop {
+  0% { opacity: 1; transform: scale(1); }
+  36% { opacity: 1; transform: scale(1.45, 1.28); }
+  54% { opacity: 1; transform: scale(1.62, 1.48); }
+  61% { opacity: 0; transform: scale(0.3, 0.3); }
+  84% { opacity: 0; transform: scale(0.3, 0.3); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.signature-particle {
+  position: fixed;
+  z-index: 10;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  pointer-events: none;
+  animation: signature-particle-burst 570ms ease-out forwards;
+}
+
+.signature-particle-dark { background: var(--red-dark); }
+
+@keyframes signature-particle-burst {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--particle-x)), calc(-50% + var(--particle-y))) scale(0.15);
+  }
 }
 
 .interaction-total {
@@ -254,17 +305,6 @@ input:focus-visible, button:focus-visible, select:focus-visible {
 
 .text-button { justify-self: center; padding: 6px; color: var(--red-dark); font-size: 0.88rem; font-weight: 800; }
 .text-button:hover { text-decoration: underline; }
-
-.signature {
-  position: absolute;
-  right: 30px;
-  bottom: 25px;
-  margin: 0;
-  color: var(--red-dark);
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
 
 .content-view { padding: 56px clamp(28px, 5vw, 76px); }
 .hidden { display: none !important; }
@@ -494,7 +534,6 @@ button:disabled { cursor: not-allowed; opacity: 0.6; }
 
 @media (max-width: 850px) {
   .topbar { gap: 15px; padding: 0 24px; }
-  .topbar-note { display: none; }
   .app-shell { grid-template-columns: 1fr; }
   .filter-sidebar { min-height: auto; padding: 29px 28px; border-right: 0; border-bottom: 1px solid var(--line); }
   .filter-sidebar > :first-child { max-width: 450px; }
@@ -502,13 +541,13 @@ button:disabled { cursor: not-allowed; opacity: 0.6; }
   .toggle-row { gap: 10px; }
   .filter-actions { grid-template-columns: minmax(170px, 220px) auto; align-items: center; }
   .text-button { justify-self: start; }
-  .signature { display: none; }
 }
 
 @media (max-width: 600px) {
   .topbar { min-height: auto; flex-wrap: wrap; gap: 10px; padding: 17px 20px; }
   .brand { font-size: 1.16rem; }
-  .interaction-total { margin-left: auto; font-size: 0.72rem; }
+  .header-signature { margin-left: auto; font-size: 0.78rem; }
+  .interaction-total { margin-left: 0; font-size: 0.72rem; }
   .main-nav { width: 100%; order: 2; }
   .nav-link { flex: 1; }
   .filter-sidebar, .content-view { padding-left: 20px; padding-right: 20px; }
@@ -530,4 +569,10 @@ button:disabled { cursor: not-allowed; opacity: 0.6; }
 
 @media (max-width: 440px) {
   .interaction-total { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-signature { transition: none; }
+  .header-signature.is-popping { animation: none; opacity: 0.6; }
+  .signature-particle { display: none; }
 }

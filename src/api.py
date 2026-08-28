@@ -6,14 +6,20 @@ import json
 import os
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
+from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .filter_courses import ALLOWED_INTEREST_CATEGORIES
+from .interaction_counter import (
+    InteractionCounterStore,
+    InteractionCounterUnavailable,
+    interaction_store_from_environment,
+)
 from .search_courses import ranked_courses
 
 
@@ -52,6 +58,28 @@ class InterestsResponse(BaseModel):
     """List the single source-of-truth Phase 2 interest categories."""
 
     interests: list[str]
+
+
+class InteractionEventType(str, Enum):
+    """The small allowlist of user actions counted globally."""
+
+    visit = "visit"
+    search = "search"
+    save = "save"
+
+
+class InteractionStatsResponse(BaseModel):
+    """The authoritative, persistent public interaction total."""
+
+    total_interactions: int
+
+
+class InteractionEventRequest(BaseModel):
+    """Accept an event name only; the server always controls the increment."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    event_type: InteractionEventType
 
 
 class CourseSearchRequest(BaseModel):
@@ -113,6 +141,9 @@ def load_course_dataset(path: Path = DATASET_PATH) -> tuple[dict[str, Any], ...]
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Store the loaded catalog for reuse by every request."""
     app.state.courses = load_course_dataset()
+    # Counter setup must never prevent course discovery from starting. The
+    # optional store itself is contacted only by the stats endpoints.
+    app.state.interaction_store = interaction_store_from_environment()
     yield
 
 
@@ -137,6 +168,14 @@ def loaded_courses(request: Request) -> Sequence[dict[str, Any]]:
     return request.app.state.courses
 
 
+def interaction_store(request: Request) -> InteractionCounterStore:
+    """Return the configured persistent counter or a non-critical 503."""
+    store = getattr(request.app.state, "interaction_store", None)
+    if store is None:
+        raise HTTPException(status_code=503, detail="Interaction statistics are temporarily unavailable.")
+    return store
+
+
 @app.get("/health", response_model=HealthResponse)
 def health(request: Request) -> HealthResponse:
     """Return startup health and the actual catalog size."""
@@ -147,6 +186,27 @@ def health(request: Request) -> HealthResponse:
 def interests() -> InterestsResponse:
     """Return the exact approved categories reused by the Phase 2 engine."""
     return InterestsResponse(interests=list(ALLOWED_INTEREST_CATEGORIES))
+
+
+@app.get("/stats/interactions", response_model=InteractionStatsResponse)
+def get_interaction_stats(request: Request) -> InteractionStatsResponse:
+    """Read the persistent total without recording an interaction."""
+    try:
+        total = interaction_store(request).get_total()
+    except InteractionCounterUnavailable as error:
+        raise HTTPException(status_code=503, detail="Interaction statistics are temporarily unavailable.") from error
+    return InteractionStatsResponse(total_interactions=total)
+
+
+@app.post("/stats/interactions", response_model=InteractionStatsResponse)
+def record_interaction(request: Request, event: InteractionEventRequest) -> InteractionStatsResponse:
+    """Record exactly one approved interaction using Redis's atomic INCR."""
+    del event  # The allowlisted event is validated but no event history is retained.
+    try:
+        total = interaction_store(request).increment()
+    except InteractionCounterUnavailable as error:
+        raise HTTPException(status_code=503, detail="Interaction statistics are temporarily unavailable.") from error
+    return InteractionStatsResponse(total_interactions=total)
 
 
 @app.post("/courses/search", response_model=CourseSearchResponse)

@@ -281,6 +281,9 @@ available at <http://127.0.0.1:8000>, with interactive documentation at
 * `POST /courses/search` accepts `query`, `interests`, `higher_level`,
   `high_gpa`, `sort_by` (`course_code` or `highest_average`), `limit` (1–200),
   and `offset`. Filtering and sorting happen before pagination.
+* `GET /stats/interactions` reads the optional global interaction total, while
+  `POST /stats/interactions` accepts only `visit`, `search`, or `save` and
+  atomically records one interaction.
 
 For example:
 
@@ -296,6 +299,15 @@ Saved Courses uses the versioned `ubcElectiveCompassSavedCoursesV2`
 `localStorage` key and stores real course records only in the current browser.
 The onboarding guide separately records whether it has been dismissed. Neither
 feature writes to the backend or shares data between browsers.
+
+### Interaction counter configuration
+
+Persistent global interaction counting requires the server-side Render
+environment variables `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+The Upstash counter is seeded to 100 only when its key is absent and records
+only visits, explicit non-empty searches, and new saves. The browser never
+receives the token. Without those variables or during a datastore outage, the
+counter displays `—`; course discovery remains available.
 
 ### Current limitations
 

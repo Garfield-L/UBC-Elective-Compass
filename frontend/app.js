@@ -5,6 +5,7 @@
 // After the Render service exists, replace only this one value with its HTTPS URL.
 const API_BASE_URL = "https://ubc-elective-compass-api.onrender.com";
 const PAGE_SIZE = 20;
+const INTERACTION_REFRESH_MS = 12 * 60 * 60 * 1000;
 const savedCoursesStorageKey = "ubcElectiveCompassSavedCoursesV2";
 const guideSeenKey = "ubcElectiveCompassGuideSeen";
 
@@ -24,6 +25,7 @@ let suggestionController;
 let suggestionRequestNumber = 0;
 let courseRequestNumber = 0;
 let currentGuideStep = 0;
+let displayedInteractionTotal = null;
 
 const guideSteps = [
   {
@@ -71,6 +73,7 @@ const elements = {
   loadMoreButton: document.querySelector("#loadMoreButton"),
   savedSummary: document.querySelector("#savedSummary"),
   savedCourses: document.querySelector("#savedCourses"),
+  interactionTotal: document.querySelector("#interactionTotal strong"),
   emptyTemplate: document.querySelector("#emptyCoursesTemplate"),
   helpButton: document.querySelector("#helpButton"),
   guideModal: document.querySelector("#guideModal"),
@@ -123,6 +126,39 @@ function friendlyServiceError(error) {
   return "Unable to reach the course service. Please try again.";
 }
 
+function isInteractionTotal(value) {
+  return Number.isInteger(value) && value >= 0;
+}
+
+function showInteractionTotal(total) {
+  if (!isInteractionTotal(total)) return;
+  displayedInteractionTotal = displayedInteractionTotal === null
+    ? total
+    : Math.max(displayedInteractionTotal, total);
+  elements.interactionTotal.textContent = displayedInteractionTotal.toLocaleString();
+}
+
+function showInteractionUnavailable() {
+  elements.interactionTotal.textContent = "—";
+}
+
+async function refreshInteractionTotal() {
+  try {
+    const response = await apiRequest("/stats/interactions");
+    showInteractionTotal(response.total_interactions);
+  } catch {
+    showInteractionUnavailable();
+  }
+}
+
+function recordInteraction(eventType) {
+  // This is intentionally fire-and-forget: a stats outage must never delay or
+  // undo the underlying search/save action.
+  apiRequest("/stats/interactions", { event_type: eventType })
+    .then((response) => showInteractionTotal(response.total_interactions))
+    .catch(showInteractionUnavailable);
+}
+
 function setCourseLoading(isLoading, isLoadingMore = false) {
   elements.findCoursesButton.disabled = isLoading;
   elements.loadMoreButton.disabled = isLoading;
@@ -148,10 +184,12 @@ function isSaved(courseCode) {
 
 function toggleSavedCourse(course) {
   const savedCourses = getSavedCourses();
-  const nextCourses = isSaved(course.course_code)
+  const wasSaved = isSaved(course.course_code);
+  const nextCourses = wasSaved
     ? savedCourses.filter((saved) => saved.course_code !== course.course_code)
     : [...savedCourses, course];
   storeSavedCourses(nextCourses);
+  if (!wasSaved) recordInteraction("save");
   renderCourseResults();
   renderSavedCourses();
 }
@@ -266,6 +304,12 @@ function runNewSearch(query = elements.courseSearch.value) {
   state.displayedCourses = [];
   state.totalResults = 0;
   return loadCourses();
+}
+
+function submitCourseSearch() {
+  const query = elements.courseSearch.value.trim();
+  if (query) recordInteraction("search");
+  return runNewSearch(query);
 }
 
 function hideSuggestions() {
@@ -468,10 +512,10 @@ elements.courseSearch.addEventListener("input", scheduleSuggestions);
 elements.courseSearch.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
-    runNewSearch();
+    submitCourseSearch();
   }
 });
-elements.searchButton.addEventListener("click", () => runNewSearch());
+elements.searchButton.addEventListener("click", submitCourseSearch);
 elements.courseSearch.addEventListener("blur", () => window.setTimeout(hideSuggestions, 120));
 elements.clearSearchButton.addEventListener("click", () => runNewSearch(""));
 elements.loadMoreButton.addEventListener("click", () => loadCourses({ append: true }));
@@ -485,6 +529,8 @@ elements.nextGuide.addEventListener("click", () => moveGuide(1));
 async function initialize() {
   updateInterestButton();
   renderSavedCourses();
+  recordInteraction("visit");
+  window.setInterval(refreshInteractionTotal, INTERACTION_REFRESH_MS);
   await loadInterests();
   await runNewSearch("");
   if (!localStorage.getItem(guideSeenKey)) window.setTimeout(openGuide, 0);

@@ -68,6 +68,8 @@ class RetryingSubjectSessionFetcher:
         self.retry_delay_seconds = retry_delay_seconds
         self.http_requests = 0
         self.retry_count = 0
+        self.successful_responses = 0
+        self.not_found_404_responses = 0
         self.requested_subject_sessions: list[tuple[str, str]] = []
         self.unresolved_errors: list[dict[str, str]] = []
 
@@ -86,9 +88,11 @@ class RetryingSubjectSessionFetcher:
                     raise ValueError(
                         f"Expected a list of grade rows for {subject} {grade_session}, got {type(rows).__name__}"
                     )
+                self.successful_responses += 1
                 return rows
             except requests.HTTPError as error:
                 if error.response is not None and error.response.status_code == 404:
+                    self.not_found_404_responses += 1
                     return []
                 last_error: Exception = error
             except (requests.RequestException, ValueError) as error:
@@ -132,6 +136,8 @@ def new_checkpoint(fingerprint: str, sessions: list[str]) -> dict[str, Any]:
             "subject_session_http_requests": 0,
             "unique_subject_session_batches": 0,
             "retry_count": 0,
+            "successful_subject_session_responses": 0,
+            "not_found_404_subject_session_responses": 0,
             "unresolved_errors": [],
         },
         "complete": False,
@@ -158,6 +164,10 @@ def load_or_create_checkpoint(
             raise ValueError("Checkpoint unresolved_subjects is invalid; rerun with --restart")
         if not isinstance(checkpoint.get("metrics"), dict):
             raise ValueError("Checkpoint metrics are invalid; rerun with --restart")
+        # Keep older candidate/V1 checkpoints readable while adding benchmark
+        # observability fields that do not change enrichment results.
+        checkpoint["metrics"].setdefault("successful_subject_session_responses", 0)
+        checkpoint["metrics"].setdefault("not_found_404_subject_session_responses", 0)
         return checkpoint
 
     checkpoint = new_checkpoint(fingerprint, sessions)
@@ -298,6 +308,12 @@ def build_full_report(
             "subject_session_http_requests": cumulative_metrics["subject_session_http_requests"],
             "unique_subject_session_batches": cumulative_metrics["unique_subject_session_batches"],
             "retry_count": cumulative_metrics["retry_count"],
+            "successful_subject_session_responses": cumulative_metrics[
+                "successful_subject_session_responses"
+            ],
+            "not_found_404_subject_session_responses": cumulative_metrics[
+                "not_found_404_subject_session_responses"
+            ],
             "subjects_reused_from_checkpoint": resumed_subjects,
         },
         "unresolved_errors": cumulative_metrics["unresolved_errors"],
@@ -336,6 +352,8 @@ def run_full_enrichment(
         request_count_before = fetcher.http_requests
         batch_count_before = len(fetcher.requested_subject_sessions)
         retry_count_before = fetcher.retry_count
+        success_count_before = fetcher.successful_responses
+        not_found_count_before = fetcher.not_found_404_responses
         unresolved_count_before = len(fetcher.unresolved_errors)
         enriched_subject = enrich_sample_courses(
             catalog_by_subject[subject], sessions, fetcher.fetch, subjects=(subject,)
@@ -359,6 +377,12 @@ def run_full_enrichment(
             len(fetcher.requested_subject_sessions) - batch_count_before
         )
         checkpoint["metrics"]["retry_count"] += fetcher.retry_count - retry_count_before
+        checkpoint["metrics"]["successful_subject_session_responses"] += (
+            fetcher.successful_responses - success_count_before
+        )
+        checkpoint["metrics"]["not_found_404_subject_session_responses"] += (
+            fetcher.not_found_404_responses - not_found_count_before
+        )
         checkpoint["metrics"]["unresolved_errors"].extend(
             fetcher.unresolved_errors[unresolved_count_before:]
         )

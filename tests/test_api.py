@@ -32,7 +32,7 @@ class ApiTests(unittest.TestCase):
     def test_health_uses_the_loaded_real_dataset(self) -> None:
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"status": "ok", "course_count": 3491})
+        self.assertEqual(response.json(), {"status": "ok", "course_count": 5722})
 
     def test_interests_matches_the_phase_two_taxonomy(self) -> None:
         response = self.client.get("/interests")
@@ -45,7 +45,7 @@ class ApiTests(unittest.TestCase):
         response = self.post_search()
         body = response.json()
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(body["total_results"], 3491)
+        self.assertEqual(body["total_results"], 5722)
         self.assertEqual(body["returned_results"], 50)
         self.assertEqual(body["limit"], 50)
         self.assertEqual(body["offset"], 0)
@@ -90,7 +90,19 @@ class ApiTests(unittest.TestCase):
     def test_higher_level_and_all_filters_apply_to_every_result(self) -> None:
         higher_response = self.post_search(higher_level=True, limit=200)
         self.assertEqual(higher_response.status_code, 200)
+        self.assertEqual(higher_response.json()["total_results"], 4490)
         self.assertTrue(all(item["level"] in {300, 400} for item in higher_response.json()["results"]))
+
+        high_gpa_response = self.post_search(high_gpa=True, limit=200)
+        self.assertEqual(high_gpa_response.status_code, 200)
+        self.assertEqual(high_gpa_response.json()["total_results"], 1838)
+        self.assertTrue(
+            all(
+                item["grade_status"] == "grade_found"
+                and item["latest_available_average"] >= 80.0
+                for item in high_gpa_response.json()["results"]
+            )
+        )
 
         all_response = self.post_search(
             interests=["Psychology & Behaviour"], higher_level=True, high_gpa=True, limit=200
@@ -119,9 +131,9 @@ class ApiTests(unittest.TestCase):
         self.assertNotEqual(first_codes, second_codes)
 
     def test_offset_beyond_results_returns_an_empty_page(self) -> None:
-        response = self.post_search(offset=5000)
+        response = self.post_search(offset=6000)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["total_results"], 3491)
+        self.assertEqual(response.json()["total_results"], 5722)
         self.assertEqual(response.json()["returned_results"], 0)
         self.assertEqual(response.json()["results"], [])
 
@@ -144,10 +156,13 @@ class ApiTests(unittest.TestCase):
 
     def test_subject_prefix_alias_substring_and_subsequence_searches(self) -> None:
         checks = {
+            "CPSC 320": "CPSC",
             "CPSC": "CPSC",
             "CP": "CPSC",
             "SOC": "SOCI",
             "SOCI": "SOCI",
+            "LAW": "LAW",
+            "AI": "AI",
             "PSC": "CPSC",
             "CC": "CPSC",
             "CS": "CPSC",

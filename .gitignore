@@ -5,3 +5,7 @@ __pycache__/
 data/*.json
 !data/.gitkeep
 !data/ubc_courses_v1_final.json
+!data/ubc_courses_full_final.json
+
+# Candidate-only review artifacts remain local; the promoted full mapping is tracked.
+config/subject_interest_map_full_candidate.json

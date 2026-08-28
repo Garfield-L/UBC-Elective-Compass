@@ -1,4 +1,4 @@
-"""Phase 6 real-data regression coverage for the completed Version 1 app."""
+"""Current-production real-data regression coverage for the completed app."""
 
 from __future__ import annotations
 
@@ -28,20 +28,21 @@ from src.search_courses import (  # noqa: E402
 )
 
 
-DATASET_PATH = Path(__file__).resolve().parents[1] / "data" / "ubc_courses_v1_final.json"
+DATASET_PATH = Path(__file__).resolve().parents[1] / "data" / "ubc_courses_full_final.json"
 COURSE_CODE_PATTERN = re.compile(r"^(?P<subject>[A-Z]+) (?P<number>[1-4]\d{2})$")
 MISSING_GRADE_STATUSES = {"no_grade_history", "only_detail_modifiers", "no_usable_overall"}
 
 
 class PhaseSixRealDataTests(unittest.TestCase):
-    """Exercise V1 invariants using the actual 3,491-record catalog."""
+    """Exercise current-production invariants using the 5,722-record catalog."""
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.courses = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
 
     def test_dataset_identity_and_interest_invariants(self) -> None:
-        self.assertEqual(len(self.courses), 3491)
+        self.assertEqual(len(self.courses), 5722)
+        self.assertEqual(len({course["subject"] for course in self.courses}), 186)
         course_codes = [course["course_code"] for course in self.courses]
         self.assertEqual(len(course_codes), len(set(course_codes)))
 
@@ -94,8 +95,8 @@ class PhaseSixRealDataTests(unittest.TestCase):
                 self.assertEqual(results[0]["course_code"], "CPSC 320")
                 self.assertEqual(search_match_quality(results[0], query), EXACT_COURSE_CODE)
 
-        self.assertEqual(len(ranked_courses(self.courses, query="", sort_by="course_code")), 3491)
-        self.assertEqual(len(ranked_courses(self.courses, query="   ", sort_by="course_code")), 3491)
+        self.assertEqual(len(ranked_courses(self.courses, query="", sort_by="course_code")), 5722)
+        self.assertEqual(len(ranked_courses(self.courses, query="   ", sort_by="course_code")), 5722)
 
     def test_search_matrix_only_returns_matching_courses(self) -> None:
         expected_subjects = {
@@ -198,6 +199,10 @@ class PhaseSixRealDataTests(unittest.TestCase):
             {course["course_code"] for course in filter_courses(self.courses, high_gpa=True)},
         )
 
+    def test_current_production_filter_counts(self) -> None:
+        self.assertEqual(len(filter_courses(self.courses, higher_level=True)), 4490)
+        self.assertEqual(len(filter_courses(self.courses, high_gpa=True)), 1838)
+
     def test_global_sorting_and_pagination(self) -> None:
         by_code = ranked_courses(self.courses, sort_by="course_code")
         self.assertEqual([course["course_code"] for course in by_code], sorted(course["course_code"] for course in by_code))
@@ -213,7 +218,7 @@ class PhaseSixRealDataTests(unittest.TestCase):
         self.assertEqual(len(first_page), 20)
         self.assertEqual(len(second_page), 20)
         self.assertFalse({course["course_code"] for course in first_page} & {course["course_code"] for course in second_page})
-        self.assertEqual(by_average[5000:5020], [])
+        self.assertEqual(by_average[6000:6020], [])
 
 
 if __name__ == "__main__":

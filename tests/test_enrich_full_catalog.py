@@ -109,6 +109,8 @@ class FullCatalogEnrichmentTests(unittest.TestCase):
             self.assertEqual(fetcher.fetch("TEST", "2025W"), [])
         self.assertEqual(fetcher.http_requests, 2)
         self.assertEqual(fetcher.retry_count, 1)
+        self.assertEqual(fetcher.successful_responses, 1)
+        self.assertEqual(fetcher.not_found_404_responses, 0)
 
     def test_subject_session_404_is_empty_without_retry(self) -> None:
         response = Mock(status_code=404)
@@ -118,6 +120,8 @@ class FullCatalogEnrichmentTests(unittest.TestCase):
             self.assertEqual(fetcher.fetch("TEST", "2025S"), [])
         self.assertEqual(fetcher.http_requests, 1)
         self.assertEqual(fetcher.retry_count, 0)
+        self.assertEqual(fetcher.successful_responses, 0)
+        self.assertEqual(fetcher.not_found_404_responses, 1)
 
     def test_fetch_error_subject_is_not_marked_completed_and_is_retried_on_resume(self) -> None:
         catalog = [

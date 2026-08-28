@@ -17,7 +17,7 @@ from .filter_courses import ALLOWED_INTEREST_CATEGORIES
 from .search_courses import ranked_courses
 
 
-DATASET_PATH = Path(__file__).resolve().parents[1] / "data" / "ubc_courses_v1_final.json"
+DATASET_PATH = Path(__file__).resolve().parents[1] / "data" / "ubc_courses_full_final.json"
 LOCAL_DEVELOPMENT_ORIGINS = (
     "http://127.0.0.1:5500",
     "http://localhost:5500",

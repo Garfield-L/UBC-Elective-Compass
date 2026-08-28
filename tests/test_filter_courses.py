@@ -34,13 +34,13 @@ def course(
 class FilterCoursesTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        path = Path(__file__).resolve().parents[1] / "data/ubc_courses_v1_final.json"
+        path = Path(__file__).resolve().parents[1] / "data/ubc_courses_full_final.json"
         cls.real_courses = json.loads(path.read_text(encoding="utf-8"))
 
     def test_no_filters_returns_all_real_courses_without_mutating_source(self) -> None:
         before = copy.deepcopy(self.real_courses)
         results = filter_courses(self.real_courses)
-        self.assertEqual(len(results), 3491)
+        self.assertEqual(len(results), 5722)
         self.assertEqual([item["course_code"] for item in results], sorted(item["course_code"] for item in before))
         self.assertEqual(self.real_courses, before)
         self.assertNotIn("matched_interests", self.real_courses[0])

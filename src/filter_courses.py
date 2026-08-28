@@ -22,7 +22,7 @@ except ImportError:  # pragma: no cover - exercised by the command-line script.
 
 HIGH_GPA_THRESHOLD = 80.0
 HIGHER_LEVELS = frozenset({300, 400})
-EXPECTED_V1_COURSE_COUNT = 3491
+EXPECTED_PRODUCTION_COURSE_COUNT = 5722
 
 
 def normalize_interests(interests: Iterable[str] | None) -> tuple[str, ...]:
@@ -183,9 +183,9 @@ def run_real_data_validation(courses: Sequence[Mapping[str, Any]]) -> dict[str, 
     for name, interests, higher_level, high_gpa in scenarios:
         results = filter_courses(courses, interests, higher_level, high_gpa)
         errors = validate_filtered_results(results, interests, higher_level, high_gpa)
-        if name == "no_filters" and len(results) != EXPECTED_V1_COURSE_COUNT:
+        if name == "no_filters" and len(results) != EXPECTED_PRODUCTION_COURSE_COUNT:
             errors.append(
-                f"no_filters returned {len(results)} courses; expected {EXPECTED_V1_COURSE_COUNT}"
+                f"no_filters returned {len(results)} courses; expected {EXPECTED_PRODUCTION_COURSE_COUNT}"
             )
         all_errors.extend(f"{name}: {error}" for error in errors)
         scenario_report: dict[str, Any] = {
@@ -206,7 +206,7 @@ def run_real_data_validation(courses: Sequence[Mapping[str, Any]]) -> dict[str, 
         scenario_reports.append(scenario_report)
     return {
         "dataset_course_count": len(courses),
-        "expected_v1_course_count": EXPECTED_V1_COURSE_COUNT,
+        "expected_production_course_count": EXPECTED_PRODUCTION_COURSE_COUNT,
         "high_gpa_threshold": HIGH_GPA_THRESHOLD,
         "scenarios": scenario_reports,
         "validation_errors": all_errors,
@@ -222,7 +222,7 @@ def write_json(value: Any, path: Path) -> None:
 def main() -> int:
     """Run the required real-data checks and save their small report."""
     parser = argparse.ArgumentParser(description="Validate Phase 2 course filtering.")
-    parser.add_argument("--input-path", type=Path, default=Path("data/ubc_courses_v1_final.json"))
+    parser.add_argument("--input-path", type=Path, default=Path("data/ubc_courses_full_final.json"))
     parser.add_argument(
         "--report-path", type=Path, default=Path("data/phase2_filter_validation_report.json")
     )

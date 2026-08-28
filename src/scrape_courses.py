@@ -57,6 +57,8 @@ class ExtractionMetrics:
     to review without changing which records are written to JSON.
     """
 
+    course_articles_encountered: int = 0
+    course_headings_encountered: int = 0
     excluded_outside_undergraduate_range: int = 0
     malformed_course_headings: int = 0
     malformed_heading_examples: list[str] = field(default_factory=list)
@@ -278,6 +280,10 @@ def extract_courses_from_subject_html(
     seen_course_codes: set[str] = set()
 
     for article in soup.select("article.node--type-course"):
+        if metrics is not None:
+            metrics.course_articles_encountered += 1
+            if article.select_one("h3") is not None:
+                metrics.course_headings_encountered += 1
         # An unexpected individual entry should not discard the rest of a subject.
         try:
             record = parse_course_article(article, faculty_school, source_url, metrics)

@@ -233,14 +233,16 @@ This validates the nine required real-data searches and writes the ignored
 sorting: interest match count first when interests are selected, then a grade
 average when the high-average filter is enabled, and finally course code.
 
-## Version 1 application
+## Current application
 
 UBC Elective Compass is a local, framework-free course-discovery application
-for the final 3,491-course Version 1 UBC Vancouver dataset. Its FastAPI backend
-loads the JSON catalog once at startup; the browser never uses a mock course
-list or a database.
+for a 5,722-course UBC Vancouver undergraduate dataset. It covers all 264
+current Calendar subject pages discovered by the pipeline, with 186 subjects
+contributing at least one 100--499-level course. Its FastAPI backend loads
+`data/ubc_courses_full_final.json` once at startup; the browser never uses a
+mock course list or a database.
 
-Version 1 includes:
+The current application includes:
 
 * backend-ranked search by course code or subject, including partial entries
   and the common aliases `CS`, `COMPUTER SCIENCE`, `COMP SCI`, and `STATS`;
@@ -297,7 +299,10 @@ feature writes to the backend or shares data between browsers.
 
 ### Current limitations
 
-* The catalog covers 60 selected UBC subjects, not every UBC subject.
+* The catalog covers courses numbered 100--499 from all current UBC Vancouver
+  Calendar subject pages discovered by this pipeline. It intentionally excludes
+  below-100 and 500+ courses and does not claim to include every course offered
+  by UBC in every session.
 * Interest tags are subject-based, not course-content classifications.
 * Historical averages may come from different available sessions and are not
   current enrollment information.
@@ -322,7 +327,7 @@ Create a Python 3 web service from the repository root with these settings:
 
 The `.python-version` file requests Python 3.14.7. The startup-loaded dataset
 uses a `pathlib` path relative to the repository, so
-`data/ubc_courses_v1_final.json` is available when the repository is deployed.
+`data/ubc_courses_full_final.json` is available when the repository is deployed.
 
 ### Vercel static frontend
 
@@ -337,5 +342,6 @@ through `localStorage`.
 
 ### Dataset and Git
 
-The final 3.8 MB production dataset is explicitly allowed by `.gitignore`:
-`data/ubc_courses_v1_final.json`. Other JSON data artifacts remain ignored.
+The full production dataset is explicitly allowed by `.gitignore`:
+`data/ubc_courses_full_final.json`. The historical V1 dataset remains tracked;
+candidate, checkpoint, and report JSON artifacts remain ignored.

@@ -47,6 +47,8 @@ class CourseParserTests(unittest.TestCase):
         self.assertEqual(metrics.duplicate_course_codes, 1)
         self.assertEqual(metrics.unusual_credit_formats, 1)
         self.assertEqual(metrics.missing_descriptions, 1)
+        self.assertEqual(metrics.course_articles_encountered, 4)
+        self.assertEqual(metrics.course_headings_encountered, 4)
 
     def test_collects_malformed_heading_examples(self) -> None:
         metrics = ExtractionMetrics()

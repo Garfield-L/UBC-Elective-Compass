@@ -184,6 +184,26 @@ class FrontendInteractionAuditTests(unittest.TestCase):
         pop_end = app_js.index("function getSavedCourses()", pop_start)
         self.assertNotIn("recordInteraction", app_js[pop_start:pop_end])
 
+    def test_description_toggles_only_for_overflowing_meaningful_text_without_counting(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        css = (root / "frontend" / "styles.css").read_text(encoding="utf-8")
+        app_js = (root / "frontend" / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn("-webkit-line-clamp: 3", css)
+        self.assertIn(".course-description.is-expanded", css)
+        self.assertIn("function refreshDescriptionToggles(container)", app_js)
+        self.assertIn("description.scrollHeight > description.clientHeight + 1", app_js)
+        self.assertIn("data-has-description='true'", app_js)
+        self.assertIn("course.description.trim().length > 0", app_js)
+        self.assertIn('descriptionToggle.setAttribute("aria-controls", description.id)', app_js)
+        self.assertIn('descriptionToggle.setAttribute("aria-expanded", "false")', app_js)
+        self.assertIn('toggle.setAttribute("aria-expanded", String(!isExpanded))', app_js)
+        self.assertIn("elements.courseResults.addEventListener(\"click\", toggleCourseDescription);", app_js)
+        self.assertIn("elements.savedCourses.addEventListener(\"click\", toggleCourseDescription);", app_js)
+        toggle_start = app_js.index("function toggleCourseDescription(event)")
+        toggle_end = app_js.index("function courseCard(course)", toggle_start)
+        self.assertNotIn("recordInteraction", app_js[toggle_start:toggle_end])
+
 
 if __name__ == "__main__":
     unittest.main()

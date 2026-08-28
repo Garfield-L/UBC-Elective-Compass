@@ -27,6 +27,7 @@ let courseRequestNumber = 0;
 let currentGuideStep = 0;
 let displayedInteractionTotal = null;
 let signaturePopActive = false;
+let descriptionControlSequence = 0;
 
 const signatureParticleVectors = [
   [0, -31], [24, -21], [34, 1], [22, 24], [0, 31], [-23, 23], [-34, 1], [-24, -21],
@@ -243,6 +244,32 @@ function usableAverage(course) {
     : null;
 }
 
+function refreshDescriptionToggles(container) {
+  window.requestAnimationFrame(() => {
+    container.querySelectorAll(".course-description[data-has-description='true']").forEach((description) => {
+      const toggle = description.parentElement.querySelector(".description-toggle");
+      if (description.classList.contains("is-expanded")) {
+        toggle.classList.remove("hidden");
+        return;
+      }
+      const isTruncated = description.scrollHeight > description.clientHeight + 1;
+      toggle.classList.toggle("hidden", !isTruncated);
+    });
+  });
+}
+
+function toggleCourseDescription(event) {
+  const toggle = event.target.closest(".description-toggle");
+  if (!toggle || !event.currentTarget.contains(toggle)) return;
+  const description = document.getElementById(toggle.getAttribute("aria-controls"));
+  if (!description) return;
+  const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+  description.classList.toggle("is-expanded", !isExpanded);
+  toggle.setAttribute("aria-expanded", String(!isExpanded));
+  toggle.textContent = isExpanded ? "Show more" : "Show less";
+  if (isExpanded) refreshDescriptionToggles(event.currentTarget);
+}
+
 function courseCard(course) {
   const card = createElement("article", "course-card");
   const top = createElement("div", "course-card-top");
@@ -260,7 +287,16 @@ function courseCard(course) {
   const metadata = createElement("div", "course-meta");
   const firstTag = Array.isArray(course.interest_tags) && course.interest_tags[0] ? course.interest_tags[0] : "Interest unavailable";
   metadata.append(createElement("span", "tag", firstTag), createElement("span", "level-tag", `${course.level}-level`));
-  const description = createElement("p", "course-description", course.description || "Course description unavailable.");
+  const hasDescription = typeof course.description === "string" && course.description.trim().length > 0;
+  const descriptionArea = createElement("div", "description-area");
+  const description = createElement("p", "course-description", hasDescription ? course.description : "Course description unavailable.");
+  description.id = `course-description-${++descriptionControlSequence}`;
+  description.dataset.hasDescription = String(hasDescription);
+  const descriptionToggle = createElement("button", "description-toggle hidden", "Show more");
+  descriptionToggle.type = "button";
+  descriptionToggle.setAttribute("aria-controls", description.id);
+  descriptionToggle.setAttribute("aria-expanded", "false");
+  descriptionArea.append(description, descriptionToggle);
 
   const averagePanel = createElement("div", "average-panel");
   const averageText = document.createElement("div");
@@ -269,7 +305,7 @@ function courseCard(course) {
   averageText.append(createElement("span", "average-session", average === null ? "Unavailable" : (course.grade_session || "Session unavailable")));
   averagePanel.append(averageText, createElement("strong", "average-value", average === null ? "Unavailable" : `${average.toFixed(1)}%`));
 
-  card.append(top, title, metadata, description, averagePanel);
+  card.append(top, title, metadata, descriptionArea, averagePanel);
   return card;
 }
 
@@ -285,6 +321,7 @@ function renderCourseResults() {
     renderEmptyState(elements.courseResults, "No courses match these filters.", "Try removing one of your filters, then search again.");
   } else {
     elements.courseResults.replaceChildren(...state.displayedCourses.map(courseCard));
+    refreshDescriptionToggles(elements.courseResults);
   }
   elements.resultsSummary.textContent = `${state.totalResults.toLocaleString()} course${state.totalResults === 1 ? "" : "s"} match your search.`;
   const hasMore = state.displayedCourses.length < state.totalResults;
@@ -302,6 +339,7 @@ function renderSavedCourses() {
     return;
   }
   elements.savedCourses.replaceChildren(...savedCourses.map(courseCard));
+  refreshDescriptionToggles(elements.savedCourses);
 }
 
 async function loadCourses({ append = false } = {}) {
@@ -555,6 +593,8 @@ elements.searchButton.addEventListener("click", submitCourseSearch);
 elements.courseSearch.addEventListener("blur", () => window.setTimeout(hideSuggestions, 120));
 elements.clearSearchButton.addEventListener("click", () => runNewSearch(""));
 elements.loadMoreButton.addEventListener("click", () => loadCourses({ append: true }));
+elements.courseResults.addEventListener("click", toggleCourseDescription);
+elements.savedCourses.addEventListener("click", toggleCourseDescription);
 elements.navLinks.forEach((link) => link.addEventListener("click", () => switchView(link.dataset.view)));
 elements.signatureButton.addEventListener("click", popDeveloperSignature);
 elements.helpButton.addEventListener("click", openGuide);
@@ -562,6 +602,10 @@ elements.closeGuide.addEventListener("click", dismissGuide);
 elements.skipGuide.addEventListener("click", dismissGuide);
 elements.previousGuide.addEventListener("click", () => moveGuide(-1));
 elements.nextGuide.addEventListener("click", () => moveGuide(1));
+window.addEventListener("resize", () => {
+  refreshDescriptionToggles(elements.courseResults);
+  refreshDescriptionToggles(elements.savedCourses);
+});
 
 async function initialize() {
   updateInterestButton();
